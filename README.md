@@ -18,7 +18,7 @@ To run the source code locally on your laptop, follow these steps:
 1. Clone this repository to your local machine:
 
    ```shell
-   git clone https://github.com/your-username/restaurant-data-processing.git
+   git clone https://github.com/KaushikR1999/govtech-de.git
 
 2. Install the required Python packages using pip:
 
@@ -60,6 +60,12 @@ To deploy this project to AWS Lambda and process data in the cloud, follow these
 
 6. Configure the Lambda function to trigger as required (periodically or in response to an event).
 
-7. Test the Lambda function to ensure it processes data and saves it to the S3 bucket.
+8. Test the Lambda function to ensure it processes data and saves it to the S3 bucket.
 
 <img width="1523" alt="Screenshot 2023-09-10 at 4 12 48 PM" src="https://github.com/KaushikR1999/govtech-de/assets/58514719/94f67595-e786-4178-9e2a-1779b7f49026">
+
+### Architecture Diagram
+
+The architecture diagram illustrates the flow of data from the source JSON & Excel files to the Lambda function and then to the S3 bucket.
+
+<img width="1614" alt="Screenshot 2023-09-10 at 5 14 14 PM" src="https://github.com/KaushikR1999/govtech-de/assets/58514719/820933e7-2ab0-4a14-9cc7-5ec680f7114c">
