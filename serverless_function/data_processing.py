@@ -1,5 +1,7 @@
 import pandas as pd
 import requests
+import boto3
+import os
 
 # Suppress warnings
 import warnings
@@ -30,7 +32,7 @@ def get_restaurants (df, country_codes_df):
 
                 # Create a row for the DataFrame
                 row = {'Restaurant Id': restaurant_id, 'Restaurant Name': restaurant_name, 'Country Id': country_id, 'City': city, 'User Rating Votes': user_rating_votes, 'User Aggregate Rating': user_aggregate_rating, 'Cuisines': cuisines}
-                restaurants_df = restaurants_df.append(row, ignore_index=True)
+                restaurants_df = pd.concat([restaurants_df, pd.DataFrame([row])], ignore_index=True)
 
     # Merge with country codes
     restaurants_df = pd.merge(restaurants_df, country_codes_df, left_on="Country Id", right_on="Country Code", how="left")
@@ -40,8 +42,7 @@ def get_restaurants (df, country_codes_df):
     # Convert User Aggregate Rating to float
     restaurants_df['User Aggregate Rating'] = restaurants_df['User Aggregate Rating'].astype(float)
 
-    # Save to CSV
-    restaurants_df.to_csv('restaurants.csv', index=False)
+    return restaurants_df
 
 def get_restaurant_events (df):
 
@@ -82,9 +83,9 @@ def get_restaurant_events (df):
                                 event_photo_urls = "NA"
 
                             row = {'Event Id': event_id, 'Restaurant Id': restaurant_id, 'Restaurant Name': restaurant_name, 'Photo URL': event_photo_urls, 'Event Title': event_title, 'Event Start Date': event_start_date, 'Event End Date': event_end_date}
-                            restaurant_events_df = restaurant_events_df.append(row, ignore_index=True)
+                            restaurant_events_df = pd.concat([restaurant_events_df, pd.DataFrame([row])], ignore_index=True)
 
-    restaurant_events_df.to_csv('restaurant_events.csv')
+    return restaurant_events_df
 
 def get_rating_thresholds (df):
 
@@ -117,11 +118,28 @@ def get_rating_thresholds (df):
                         user_ratings.loc[user_ratings['rating_text'] == rating_text, 'min_aggregate_rating'] = min_rating
                         user_ratings.loc[user_ratings['rating_text'] == rating_text, 'max_aggregate_rating'] = max_rating
                     else:
-                        user_ratings = user_ratings.append(row, ignore_index=True)
+                        user_ratings = pd.concat([user_ratings, pd.DataFrame([row])], ignore_index=True)
 
     return user_ratings
+    
+def save_dataframe_to_s3(dataframe, object_key):
+    # Define AWS credentials and S3 bucket information
+    aws_access_key_id = 'access_key_id'
+    aws_secret_access_key = 'secret_access_key'
+    bucket_name = 'bucket_name'
+    
+    # Create an S3 client
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+    )
 
-def main():
+    # Save the DataFrame directly to S3 as a CSV file
+    csv_buffer = dataframe.to_csv(index=False).encode()
+    s3.put_object(Bucket=bucket_name, Key=object_key, Body=csv_buffer)
+
+def main(event, context):
     # Load data from the JSON file
     json_url = 'https://raw.githubusercontent.com/Papagoat/brain-assessment/main/restaurant_data.json'
     df = pd.read_json(json_url)
@@ -129,12 +147,14 @@ def main():
     # Load country codes from Excel file
     country_codes_df = pd.read_excel('Country-Code.xlsx')
 
-    get_restaurants(df, country_codes_df)
+    restaurants_df = get_restaurants(df, country_codes_df)
+    save_dataframe_to_s3(restaurants_df, 'restaurants.csv')
 
-    get_restaurant_events(df)
+    restaurant_events_df = get_restaurant_events(df)
+    save_dataframe_to_s3(restaurant_events_df, 'restaurant_events.csv')
 
     thresholds = get_rating_thresholds(df)
-    print (thresholds)
+    print(thresholds)
 
 if __name__ == "__main__":
     main()
