@@ -1,1 +1,0 @@
-serverless: python serverless_function/data_processing.py
